@@ -10,6 +10,7 @@ import com.ordernest.order.entity.CustomerOrder;
 import com.ordernest.order.exception.BadRequestException;
 import com.ordernest.order.exception.ResourceNotFoundException;
 import com.ordernest.order.repository.OrderRepository;
+import com.ordernest.order.security.JwtService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +23,11 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final InventoryClient inventoryClient;
+    private final JwtService jwtService;
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request, String authorization) {
+        UUID userId = extractUserIdFromAuthorization(authorization);
         InventoryProductResponse inventoryProduct = inventoryClient.getProductById(request.item().productId(), authorization);
         int available = inventoryProduct.availableQuantity() == null ? 0 : inventoryProduct.availableQuantity();
         int requested = request.item().quantity();
@@ -33,9 +36,13 @@ public class OrderService {
             throw new BadRequestException("Insufficient inventory. Available: " + available + ", requested: " + requested);
         }
 
+        int updatedAvailableQuantity = available - requested;
+        inventoryClient.updateProductStock(request.item().productId(), updatedAvailableQuantity, authorization);
+
         CustomerOrder order = new CustomerOrder();
-        order.setUserId(request.userId());
+        order.setUserId(userId);
         order.setProductId(request.item().productId());
+        order.setProductName(inventoryProduct.name());
         order.setQuantity(requested);
 
         CustomerOrder saved = orderRepository.save(order);
@@ -69,5 +76,24 @@ public class OrderService {
                 order.getPaymentStatus(),
                 order.getCreatedAt()
         );
+    }
+
+    private UUID extractUserIdFromAuthorization(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new BadRequestException("Missing or invalid Authorization header");
+        }
+
+        String token = authorization.substring(7);
+        try {
+            UUID userId = jwtService.extractUserId(token);
+            if (userId == null) {
+                throw new BadRequestException("userId not found in token");
+            }
+            return userId;
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Invalid userId in token");
+        } catch (Exception ex) {
+            throw new BadRequestException("Unable to resolve userId from token");
+        }
     }
 }
