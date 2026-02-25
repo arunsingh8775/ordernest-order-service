@@ -7,7 +7,6 @@ import java.util.UUID;
 
 public record OrderResponse(
         UUID orderId,
-        UUID userId,
         OrderItemResponse item,
         OrderStatus status,
         PaymentStatus paymentStatus,
