@@ -7,6 +7,7 @@ public record OrderItemResponse(
         UUID productId,
         String productName,
         Integer quantity,
-        BigDecimal totalAmount
+        BigDecimal totalAmount,
+        String currency
 ) {
 }
