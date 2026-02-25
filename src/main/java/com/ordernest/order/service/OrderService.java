@@ -11,6 +11,8 @@ import com.ordernest.order.exception.BadRequestException;
 import com.ordernest.order.exception.ResourceNotFoundException;
 import com.ordernest.order.repository.OrderRepository;
 import com.ordernest.order.security.JwtService;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,9 @@ public class OrderService {
             throw new BadRequestException("Insufficient inventory. Available: " + available + ", requested: " + requested);
         }
 
+        BigDecimal unitPrice = inventoryProduct.price(); // must be BigDecimal
+        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(requested));
+
         int updatedAvailableQuantity = available - requested;
         inventoryClient.updateProductStock(request.item().productId(), updatedAvailableQuantity, authorization);
 
@@ -44,6 +49,7 @@ public class OrderService {
         order.setProductId(request.item().productId());
         order.setProductName(inventoryProduct.name());
         order.setQuantity(requested);
+        order.setTotalAmount(totalAmount);
 
         CustomerOrder saved = orderRepository.save(order);
         return new CreateOrderResponse(saved.getId());
@@ -70,7 +76,7 @@ public class OrderService {
     private OrderResponse mapToResponse(CustomerOrder order) {
         return new OrderResponse(
                 order.getId(),
-                new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity()),
+                new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity(), order.getTotalAmount()),
                 order.getStatus(),
                 order.getPaymentStatus(),
                 order.getCreatedAt()
