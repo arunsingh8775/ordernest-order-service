@@ -3,6 +3,7 @@ package com.ordernest.order.client;
 import com.ordernest.order.exception.BadRequestException;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -41,6 +42,31 @@ public class InventoryClient {
             throw new BadRequestException("Unable to verify inventory right now");
         } catch (RestClientException ex) {
             throw new BadRequestException("Unable to verify inventory right now");
+        }
+    }
+
+    public void updateProductStock(UUID productId, int newAvailableQuantity, String authorization) {
+        try {
+            RestClient.RequestBodySpec requestSpec = restClient.method(HttpMethod.PATCH)
+                    .uri("/api/products/{id}/stock", productId);
+
+            if (authorization != null && !authorization.isBlank()) {
+                requestSpec = requestSpec.header("Authorization", authorization);
+            }
+
+            requestSpec.body(new InventoryStockUpdateRequest(newAvailableQuantity))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new BadRequestException("Product not found while updating inventory: " + productId);
+            }
+            if (ex.getStatusCode().value() == 401 || ex.getStatusCode().value() == 403) {
+                throw new BadRequestException("Unauthorized to update inventory");
+            }
+            throw new BadRequestException("Unable to update inventory right now");
+        } catch (RestClientException ex) {
+            throw new BadRequestException("Unable to update inventory right now");
         }
     }
 }

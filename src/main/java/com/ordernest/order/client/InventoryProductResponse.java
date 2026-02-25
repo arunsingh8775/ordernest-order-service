@@ -6,6 +6,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record InventoryProductResponse(
         UUID id,
+        String name,
         Integer availableQuantity
 ) {
 }

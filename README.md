@@ -23,7 +23,6 @@ Environment variables:
 Request:
 ```json
 {
-  "userId": "340fe1ae-932a-48c5-910c-0b8f55581682",
   "item": {
     "productId": "d641ef4b-d996-4580-8642-9666349e5f6d",
     "quantity": 4
