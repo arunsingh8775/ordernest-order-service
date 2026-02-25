@@ -71,7 +71,7 @@ public class OrderService {
         return new OrderResponse(
                 order.getId(),
                 order.getUserId(),
-                new OrderItemResponse(order.getProductId(), order.getQuantity()),
+                new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity()),
                 order.getStatus(),
                 order.getPaymentStatus(),
                 order.getCreatedAt()
