@@ -7,15 +7,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Table(name = "orders")
 @Getter
 @Setter
+@NoArgsConstructor
 public class CustomerOrder {
 
     @Id
@@ -32,6 +39,11 @@ public class CustomerOrder {
 
     @Column(nullable = false)
     private Integer quantity;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = true)
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
