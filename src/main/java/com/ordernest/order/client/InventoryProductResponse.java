@@ -10,6 +10,7 @@ public record InventoryProductResponse(
         UUID id,
         String name,
         BigDecimal price,
-        Integer availableQuantity
+        Integer availableQuantity,
+        String currency
 ) {
 }

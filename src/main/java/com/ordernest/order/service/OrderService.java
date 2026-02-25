@@ -50,6 +50,7 @@ public class OrderService {
         order.setProductName(inventoryProduct.name());
         order.setQuantity(requested);
         order.setTotalAmount(totalAmount);
+        order.setCurrency(inventoryProduct.currency());
 
         CustomerOrder saved = orderRepository.save(order);
         return new CreateOrderResponse(saved.getId());
@@ -76,7 +77,7 @@ public class OrderService {
     private OrderResponse mapToResponse(CustomerOrder order) {
         return new OrderResponse(
                 order.getId(),
-                new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity(), order.getTotalAmount()),
+                new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity(), order.getTotalAmount(), order.getCurrency()),
                 order.getStatus(),
                 order.getPaymentStatus(),
                 order.getCreatedAt()

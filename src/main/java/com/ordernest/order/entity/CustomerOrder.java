@@ -53,6 +53,9 @@ public class CustomerOrder {
     @Column(nullable = false)
     private PaymentStatus paymentStatus;
 
+    @Column
+    private String currency;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
