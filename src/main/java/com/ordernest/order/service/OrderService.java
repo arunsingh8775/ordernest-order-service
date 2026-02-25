@@ -70,7 +70,6 @@ public class OrderService {
     private OrderResponse mapToResponse(CustomerOrder order) {
         return new OrderResponse(
                 order.getId(),
-                order.getUserId(),
                 new OrderItemResponse(order.getProductId(), order.getProductName(), order.getQuantity()),
                 order.getStatus(),
                 order.getPaymentStatus(),
