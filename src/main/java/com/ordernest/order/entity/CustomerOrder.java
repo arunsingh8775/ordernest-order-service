@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -32,6 +33,12 @@ public class CustomerOrder {
 
     @Column(nullable = false)
     private Integer quantity;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(length = 3)
+    private String currency;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

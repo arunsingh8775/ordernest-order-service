@@ -6,6 +6,7 @@ Spring Boot order service for OrderNest.
 - Create order (`POST /api/orders`)
 - Get order by order id (`GET /api/orders/{orderId}`)
 - Get orders by user id (`GET /api/orders/user/{userId}`)
+- Pay order (`POST /api/orders/{orderId}/pay`)
 - Validates inventory availability through inventory service before creating order
 
 ## Configuration
@@ -16,6 +17,7 @@ Environment variables:
 - `DB_USERNAME`
 - `DB_PASSWORD`
 - `INVENTORY_API_BASE_URL` (optional, default `https://ordernest-inventory-service.onrender.com`)
+- `PAYMENT_API_BASE_URL` (optional, default `http://localhost:8083`)
 
 ## Create Order
 `POST /api/orders`
@@ -42,3 +44,6 @@ Response (`201`):
 
 ## Get Orders By User Id
 `GET /api/orders/user/{userId}`
+
+## Pay Order
+`POST /api/orders/{orderId}/pay`

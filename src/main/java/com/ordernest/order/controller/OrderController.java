@@ -3,6 +3,7 @@ package com.ordernest.order.controller;
 import com.ordernest.order.dto.CreateOrderRequest;
 import com.ordernest.order.dto.CreateOrderResponse;
 import com.ordernest.order.dto.OrderResponse;
+import com.ordernest.order.dto.PayOrderResponse;
 import com.ordernest.order.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -38,7 +39,7 @@ public class OrderController {
             @PathVariable UUID orderId,
             @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
-        return ResponseEntity.ok(orderService.getOrderById(orderId));
+        return ResponseEntity.ok(orderService.getOrderById(orderId, authorization));
     }
 
     @GetMapping("/user/{userId}")
@@ -46,6 +47,14 @@ public class OrderController {
             @PathVariable UUID userId,
             @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
-        return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
+        return ResponseEntity.ok(orderService.getOrdersByUserId(userId, authorization));
+    }
+
+    @PostMapping("/{orderId}/pay")
+    public ResponseEntity<PayOrderResponse> payOrder(
+            @PathVariable UUID orderId,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        return ResponseEntity.ok(orderService.payOrder(orderId, authorization));
     }
 }

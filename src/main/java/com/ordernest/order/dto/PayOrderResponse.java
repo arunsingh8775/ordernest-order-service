@@ -2,18 +2,13 @@ package com.ordernest.order.dto;
 
 import com.ordernest.order.entity.OrderStatus;
 import com.ordernest.order.entity.PaymentStatus;
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
-public record OrderResponse(
+public record PayOrderResponse(
         UUID orderId,
-        UUID userId,
-        OrderItemResponse item,
-        BigDecimal totalAmount,
-        String currency,
         OrderStatus status,
         PaymentStatus paymentStatus,
-        Instant createdAt
+        String paymentId,
+        String reason
 ) {
 }
