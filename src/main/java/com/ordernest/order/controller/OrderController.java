@@ -34,12 +34,18 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID orderId) {
+    public ResponseEntity<OrderResponse> getOrderById(
+            @PathVariable UUID orderId,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
         return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderResponse>> getOrdersByUserId(@PathVariable UUID userId) {
+    public ResponseEntity<List<OrderResponse>> getOrdersByUserId(
+            @PathVariable UUID userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
         return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
     }
 }
