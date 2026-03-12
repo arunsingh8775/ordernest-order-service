@@ -1,7 +1,7 @@
 package com.ordernest.order.entity;
 
 public enum PaymentStatus {
-    PENDING,
+    UNPAID,
     SUCCESS,
     FAILED,
     REFUND_INITIATED,

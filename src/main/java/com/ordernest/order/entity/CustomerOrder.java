@@ -78,7 +78,7 @@ public class CustomerOrder {
             status = OrderStatus.CREATED;
         }
         if (paymentStatus == null) {
-            paymentStatus = PaymentStatus.PENDING;
+            paymentStatus = PaymentStatus.UNPAID;
         }
         if (shipmentStatus == null) {
             shipmentStatus = ShipmentStatus.NOT_CREATED;
