@@ -65,7 +65,7 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         order.setCurrency(inventoryProduct.currency());
         order.setStatus(OrderStatus.CREATED);
-        order.setPaymentStatus(PaymentStatus.PENDING);
+        order.setPaymentStatus(PaymentStatus.UNPAID);
         order.setShipmentStatus(ShipmentStatus.NOT_CREATED);
 
         CustomerOrder saved = orderRepository.save(order);
@@ -107,7 +107,7 @@ public class OrderService {
         } else if (currentPaymentStatus == PaymentStatus.REFUNDED) {
             order.setPaymentStatus(PaymentStatus.REFUNDED);
         } else {
-            order.setPaymentStatus(PaymentStatus.FAILED);
+            order.setPaymentStatus(PaymentStatus.UNPAID);
         }
 
         ShipmentStatus currentShipmentStatus = order.getShipmentStatus();
