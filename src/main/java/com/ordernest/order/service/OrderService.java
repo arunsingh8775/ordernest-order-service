@@ -6,6 +6,7 @@ import com.ordernest.order.dto.CreateOrderRequest;
 import com.ordernest.order.dto.CreateOrderResponse;
 import com.ordernest.order.dto.OrderItemResponse;
 import com.ordernest.order.dto.OrderResponse;
+import com.ordernest.order.dto.UpdateShipmentStatusRequest;
 import com.ordernest.order.entity.CustomerOrder;
 import com.ordernest.order.entity.OrderStatus;
 import com.ordernest.order.entity.PaymentStatus;
@@ -14,19 +15,22 @@ import com.ordernest.order.event.OrderCancellationEvent;
 import com.ordernest.order.event.OrderCancellationEventType;
 import com.ordernest.order.event.PaymentEvent;
 import com.ordernest.order.event.PaymentEventType;
-import com.ordernest.order.event.ShipmentEvent;
+import com.ordernest.order.event.ShipmentStatusEvent;
 import com.ordernest.order.exception.BadRequestException;
 import com.ordernest.order.exception.ResourceNotFoundException;
 import com.ordernest.order.messaging.OrderCancellationEventPublisher;
+import com.ordernest.order.messaging.ShipmentStatusEventPublisher;
 import com.ordernest.order.repository.OrderRepository;
 import com.ordernest.order.security.JwtService;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,7 @@ public class OrderService {
     private final InventoryClient inventoryClient;
     private final JwtService jwtService;
     private final OrderCancellationEventPublisher orderCancellationEventPublisher;
+    private final ShipmentStatusEventPublisher shipmentStatusEventPublisher;
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request, String authorization) {
@@ -166,59 +171,71 @@ public class OrderService {
     }
 
     @Transactional
-    public void applyShipmentEvent(ShipmentEvent shipmentEvent) {
-        if (shipmentEvent == null || shipmentEvent.orderId() == null || shipmentEvent.shipmentStatus() == null) {
-            log.warn("Skipping shipment event with missing required fields: {}", shipmentEvent);
-            return;
+    public OrderResponse updateShipmentStatusByAdmin(UpdateShipmentStatusRequest request, String authorization) {
+        String token = extractBearerToken(authorization);
+        if (!jwtService.isTokenValid(token)) {
+            throw new AccessDeniedException("Invalid or expired token");
+        }
+
+        String normalizedRole = normalizeRole(jwtService.extractRole(token));
+        if (!"ROLE_ADMIN".equals(normalizedRole)) {
+            throw new AccessDeniedException("Only admin can update shipment status");
+        }
+
+        if (request == null || request.orderId() == null || request.shipmentStatus() == null) {
+            throw new BadRequestException("orderId and shipmentStatus are required");
         }
 
         UUID orderId;
         try {
-            orderId = UUID.fromString(shipmentEvent.orderId());
+            orderId = UUID.fromString(request.orderId().trim());
         } catch (IllegalArgumentException ex) {
-            log.warn("Skipping shipment event with invalid orderId: {}", shipmentEvent.orderId());
-            return;
+            throw new BadRequestException("Invalid orderId");
         }
 
-        orderRepository.findById(orderId).ifPresentOrElse(
-                order -> {
-                    ShipmentStatus current = order.getShipmentStatus();
-                    ShipmentStatus next = shipmentEvent.shipmentStatus();
+        CustomerOrder order = findById(orderId);
+        ShipmentStatus current = order.getShipmentStatus();
+        ShipmentStatus next = request.shipmentStatus();
 
-                    if (current == next) {
-                        return;
-                    }
+        if (current == next) {
+            return mapToResponse(order);
+        }
 
-                    if (order.getStatus() != OrderStatus.CONFIRMED || order.getPaymentStatus() != PaymentStatus.SUCCESS) {
-                        log.warn("Skipping shipment event because order is not in CONFIRMED/SUCCESS state. orderId={}, status={}, paymentStatus={}",
-                                orderId, order.getStatus(), order.getPaymentStatus());
-                        return;
-                    }
+        if (order.getStatus() != OrderStatus.CONFIRMED || order.getPaymentStatus() != PaymentStatus.SUCCESS) {
+            throw new BadRequestException("Order must be CONFIRMED with successful payment before shipment updates");
+        }
 
-                    boolean validTransition =
-                            (current == ShipmentStatus.NOT_CREATED && next == ShipmentStatus.CREATED)
-                                    || (current == ShipmentStatus.CREATED && next == ShipmentStatus.SHIPPED)
-                                    || (current == ShipmentStatus.SHIPPED && next == ShipmentStatus.DELIVERED)
-                                    || (current == ShipmentStatus.DELIVERED && next == ShipmentStatus.RETURNED);
+        boolean validTransition =
+                (current == ShipmentStatus.NOT_CREATED && next == ShipmentStatus.CREATED)
+                        || (current == ShipmentStatus.CREATED && next == ShipmentStatus.SHIPPED)
+                        || (current == ShipmentStatus.SHIPPED && next == ShipmentStatus.DELIVERED)
+                        || (current == ShipmentStatus.DELIVERED && next == ShipmentStatus.RETURNED);
 
-                    if (!validTransition) {
-                        log.warn("Skipping invalid shipment transition. orderId={}, current={}, next={}", orderId, current, next);
-                        return;
-                    }
+        if (!validTransition) {
+            throw new BadRequestException("Invalid shipment transition from " + current + " to " + next);
+        }
 
-                    order.setShipmentStatus(next);
-                    if (next == ShipmentStatus.RETURNED) {
-                        order.setStatus(OrderStatus.CANCELLED);
-                        order.setPaymentStatus(PaymentStatus.REFUNDED);
-                    }
-                    orderRepository.save(order);
+        order.setShipmentStatus(next);
+        if (next == ShipmentStatus.RETURNED) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setPaymentStatus(PaymentStatus.REFUNDED);
+        }
+        CustomerOrder saved = orderRepository.save(order);
 
-                    if (next == ShipmentStatus.RETURNED) {
-                        publishOrderCancellationEvent(order, "Shipment returned");
-                    }
-                },
-                () -> log.warn("Shipment event received for unknown orderId: {}", orderId)
+        String updatedBy = jwtService.extractEmail(token);
+        ShipmentStatusEvent event = new ShipmentStatusEvent(
+                saved.getId().toString(),
+                next,
+                updatedBy,
+                Instant.now()
         );
+        shipmentStatusEventPublisher.publish(event);
+
+        if (next == ShipmentStatus.RETURNED) {
+            publishOrderCancellationEvent(saved, "Shipment returned");
+        }
+
+        return mapToResponse(saved);
     }
 
     private void publishOrderCancellationEvent(CustomerOrder order, String reason) {
@@ -267,5 +284,24 @@ public class OrderService {
         } catch (Exception ex) {
             throw new BadRequestException("Unable to resolve userId from token");
         }
+    }
+
+    private String extractBearerToken(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new AccessDeniedException("Missing or invalid Authorization header");
+        }
+        return authorization.substring(7);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new AccessDeniedException("Role claim missing in token");
+        }
+
+        String trimmedRole = role.trim().toUpperCase(Locale.ROOT);
+        if (!trimmedRole.startsWith("ROLE_")) {
+            trimmedRole = "ROLE_" + trimmedRole;
+        }
+        return trimmedRole;
     }
 }
