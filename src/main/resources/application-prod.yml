@@ -1,0 +1,23 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  kafka:
+    bootstrap-servers: kafka-877fe57-ordernest.i.aivencloud.com:14046
+    properties:
+      ssl:
+        truststore:
+          type: PEM
+          location: /app/ssl/ca.pem
+        keystore:
+          type: PKCS12
+          location: /app/ssl/client.keystore.p12
+          password: changeit
+  datasource:
+    url: jdbc:postgresql://ep-fragrant-unit-ailk0gqi-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require&currentSchema=orders
+    username: neondb_owner
+    password: npg_vgtaq37FPiRZ
+
+app:
+  inventory:
+    base-url: https://ordernest-inventory-service.onrender.com

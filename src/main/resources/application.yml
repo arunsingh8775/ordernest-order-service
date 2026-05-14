@@ -2,10 +2,11 @@ server:
   port: 8082
 
 spring:
+  profiles:
+    default: local
   config:
-    import: optional:file:./etc/secrets/config.properties,optional:file:/etc/secrets/config.properties
+    import: optional:file:/etc/secrets/application-prod.yml
   kafka:
-    bootstrap-servers: ${KAFKA_SERVICE_URL:localhost:9092}
     consumer:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -13,19 +14,8 @@ spring:
     properties:
       security:
         protocol: SSL
-      ssl:
-        truststore:
-          type: PEM
-          location: ${KAFKA_TRUSTSTORE_PATH:${user.dir}/src/main/resources/ca.pem}
-        keystore:
-          type: PKCS12
-          location: ${KAFKA_KEYSTORE_PATH:${user.dir}/src/main/resources/client.keystore.p12}
-          password: changeit
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/order_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -43,8 +33,6 @@ app:
       order-status-events: order.status.events
     consumer:
       group-id: ordernest-order-service-payment-consumer
-  inventory:
-    base-url: ${INVENTORY_API_BASE_URL:http://localhost:8081}
 
 management:
   endpoints:
