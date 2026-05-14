@@ -7,3 +7,7 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local secrets
+etc/secrets/config.properties
+src/main/resources/application-prod.yml
